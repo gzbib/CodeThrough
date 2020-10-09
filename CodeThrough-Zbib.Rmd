@@ -1,0 +1,362 @@
+---
+title: "Sentiment Analysis"
+author: "Ghida Zbib"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    theme: united
+    df_print: paged
+    highlight: tango
+    toc: yes
+    toc_float: yes
+---
+
+```{r include = FALSE}
+
+# SET GLOBAL KNITR OPTIONS
+
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      fig.width = 10, 
+                      fig.height = 8)
+
+# LOAD PACKAGES
+
+library(pander)
+library(kableExtra)
+library(syuzhet)
+library(dplyr)
+library(tm)
+library(ggplot2)
+library(plotly)
+
+```
+
+
+
+
+# Introduction
+
+This code through explores the importance of **sentiment analysis** which is a technique to evaluate the overall positivity, negativity, or neutrality of textual data. It mainly uses machine learning and natural language processing (NLP) to classify and interpret emotions. This is often used in businesses to detect and collect customer feedback. 
+
+## Sentiment Analysis
+
+***How does sentiment analysis work?***
+
+After applying text mining or text analytics, which is the process of converting unstructured text data into meaningful information, you will get a a list of terms that can be cross intersected with a lexicon. You are mainly comparing the terms to emotion lexicons and returning scores that represent emotional feedback.
+
+<br>
+
+## Content Overview
+
+Specifically, I will explain and demonstrate the usage of **Syuzhet package** and I will focus on two major functions ***get_sentiment*** & ***get_nrc_sentiment***.
+
+<br>
+<br>
+
+# Functions: Dig Deeper
+
+## Syuzhet Package
+
+### Background
+
+The russian formalists Victor Shklovsky and Vladimir Propp divided narrative into two categories, the "fabula" and the "syuzhet". Syuzhet is referred to as the technique while fabula represents the chronological order of events. Thus, Syuzhet is concerned in the manner in which elements of the story (fabula) are organized (syuzhet).
+
+This package reveals the latent structure of narrative by means of sentiment analysis. It implements Saif Mohammad’s NRC Emotion lexicon (anger, fear, anticipation, trust, surprise, sadness, joy, and disgust).These terms are distributed into 3 polarities: positive, neutral, and negative. 
+
+### Installation
+
+This package is now available on CRAN (http://cran.r-project.org/web/packages/syuzhet/).
+
+
+```{r}
+
+install.packages("syuzhet")
+
+
+```
+
+### Challenges
+
+In the world of sentiment analysis, there are other packages that care about making sense out of unstructured texts. These include ***tidytext*** and ***sentimentr***. Syuzhet and Tidytext share the same limitation since they both use the “Bing,” “AFINN,” and “NRC” lexicons. The Bing and AFINN lexicons perceive the word “miss” as a negative word, while NRC doesn't. However, ***sentimentr** addresses this issue by considering domain specific lexicons and by taking into consideration valence shifters (such as "not", "very", or "doesn’t").
+
+
+
+## Get_sentiment 
+
+***Description*** 
+
+Iterates over a vector of strings and returns sentiment values based on the chosen method.
+
+***Syntax***:
+
+```{r}
+
+char_v <- c("cry","hug", "hurt")
+
+get_sentiment(char_v, method = "syuzhet",language = "english", lexicon = NULL)
+
+```
+
+
+***Arguments***
+
+**char_v**: vector of strings
+
+**method**: A string indicating which sentiment method to use. Options include "syuzhet", "bing", "afinn", "nrc" and "stanford." The default method is syuzhet.
+
+**language**: A string, and only works for nrc method.
+
+**lexicon**:	a data frame with at least two columns labeled "word" and "value."
+
+***Return Value***: Return value is a numeric vector of sentiment values, one value for each input sentence.
+
+
+## Get_nrc_sentiment
+
+***Description***
+
+Calls the NRC sentiment dictionary to calculate the presence of eight different emotions and their corresponding valence in a text file.
+
+***Syntax***:
+
+```{r}
+
+char_v <- c("cry","hug", "hurt")
+
+get_nrc_sentiment(char_v,language = "english")
+
+```
+
+***Arguments***:
+
+**char_v**: A character vector
+
+**language**: A string
+
+***Return Value***: A data frame where each row represents a sentence from the original file. The columns include one for each emotion type as well as a positive or negative valence. The ten columns are as follows: "anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", "trust", "negative", "positive."
+
+<br>
+
+# Dataset Example
+
+I will use a dataset named **"Brands and Product Emotions"** from data.world. The tweets about multiple brands and products were evaluated.
+
+## Demonstrate functions & Extract data
+
+* Load Dataset
+
+```{r}
+
+URL <- "https://query.data.world/s/6fd24pmaed5nmmjlx5nfexwfntar3f"
+
+dat <- read.csv(URL)
+
+dat <- read.csv ("https://query.data.world/s/6fd24pmaed5nmmjlx5nfexwfntar3f", header=TRUE, stringsAsFactors = FALSE)
+
+```
+
+* Parsing tweet texts into vector of sentences 
+
+```{r}
+
+s_v <- get_sentences(dat$tweet_text)
+
+
+```
+
+* Print top of dataset
+
+```{r}
+
+head(s_v)
+
+```
+
+* get_sentiment()
+
+
+```{r}
+
+#1st method
+
+syuzhet_vector <- get_sentiment(s_v, method="syuzhet")
+
+```
+
+```{r}
+
+head(syuzhet_vector)
+
+```
+
+```{r}
+#2nd method
+
+
+nrc_vector <- get_sentiment(s_v, method="nrc", lang = "english")
+
+
+```
+
+```{r}
+
+head(nrc_vector)
+
+```
+
+**_Remark_**:  The different methods will return slightly different results since each method uses a different scale.
+
+
+* get_nrc_sentiment()
+
+```{r}
+
+nrc_data <- get_nrc_sentiment(s_v)
+nrc_data
+
+```
+
+* Sum the values in order to get a measure of the overall emotional valence in the text
+
+```{r}
+
+sum(syuzhet_vector)
+
+```
+
+* Identify item(s) with the most “anger” and most "joy" and use it as a reference to find the corresponding sentence from the passage
+
+```{r}
+
+angry_items <- which(nrc_data$anger > 0)
+s_v[head(angry_items)]
+
+```
+
+
+```{r}
+joy_items <- which(nrc_data$joy > 0)
+s_v[head(joy_items)]
+
+
+```
+
+* View all of the emotions and their values
+
+```{r}
+
+pander::pandoc.table(tail (nrc_data[, 1:8]), split.table = Inf)
+
+```
+
+
+* Examine only the positive and negative valence:
+
+
+```{r}
+
+pander::pandoc.table(tail (nrc_data[, 9:10]))
+
+```
+
+## Visualize data
+
+### Horizontal & Basic Bar Chart
+
+* The percentage of each emotion in the text can be plotted as a bar graph:
+
+
+```{r}
+
+barplot(
+  sort(colSums(prop.table(nrc_data[, 1:8]))), 
+  horiz = TRUE, 
+  cex.names = 0.7, 
+  las = 1, 
+  main = "Emotions in Sample text", xlab="Percentage"
+  )
+
+```
+
+### Bar Chart with Plotly
+
+* The number of brands or products that have emotions assigned to them
+
+
+
+```{r}
+
+plot_ly(dat, x= dat$is_there_an_emotion_directed_at_a_brand_or_product,type="histogram",
+        marker = list(color = c('grey', 'red',
+                                'orange', 'navy',
+                                'yellow'))) %>%
+  layout(yaxis = list(title='Count'), title="Sentiment Analysis: Emotions")
+
+```
+
+### Bar Chart of 2 polaritis
+
+* The first bar chart is a vertical one showing all different emotions.
+* The second bar chart illustrates emotions categorized into positive & negative
+
+```{r}
+mydataCopy <- dat
+#carryout sentiment mining using the get_nrc_sentiment()function #log the findings under a variable result
+result <- get_nrc_sentiment(as.character(mydataCopy))
+#change result from a list to a data frame and transpose it 
+result1<-data.frame(t(result))
+#rowSums computes column sums across rows for each level of a #grouping variable.
+new_result <- data.frame(rowSums(result1))
+#name rows and columns of the dataframe
+names(new_result)[1] <- "count"
+new_result <- cbind("sentiment" = rownames(new_result), new_result)
+rownames(new_result) <- NULL
+#plot the first 8 rows,the distinct emotions
+qplot(sentiment, data=new_result[1:8,], weight=count, geom="bar",fill=sentiment)+ggtitle("Products Sentiments")
+
+#plot the last 2 rows ,positive and negative
+qplot(sentiment, data=new_result[9:10,], weight=count, geom="bar",fill=sentiment)+ggtitle("Products Sentiments")
+
+
+```
+
+<br>
+<br>
+
+
+# Further Resources
+
+Learn more about [sentiment analysis & syuzhet package] with the following:
+
+<br>
+
+* Resource I [Text Mining](https://www.red-gate.com/simple-talk/sql/bi/text-mining-and-sentiment-analysis-with-r/)
+
+* Resource II [Sentiment Analysis](https://monkeylearn.com/sentiment-analysis/)
+
+* Resource III [Basic Sentiment Analysis](https://rstudio-pubs-static.s3.amazonaws.com/276096_5f10707713d7468fb5a3834a85c2de72.html)
+
+<br>
+<br>
+
+# Works Cited
+
+This code through references and cites the following sources:
+
+<br>
+
+* Lorna (2018). Source I. [Exploring Sentiment Analysis](https://medium.com/swlh/exploring-sentiment-analysis-a6b53b026131)
+
+* Matthew (2017). Source II. [Syuzhet Documentation](https://www.rdocumentation.org/packages/syuzhet/versions/1.0.4)
+
+* Hoyeol (2018). Source III. [Tidytext Package](https://hoyeolkim.wordpress.com/2018/02/25/the-limits-of-the-bing-afinn-and-nrc-lexicons-with-the-tidytext-package-in-r/)
+
+
+* Richard (2019). Source IV. [Introduction to the Syuzhet Package](https://hoyeolkim.wordpress.com/2018/02/25/the-limits-of-the-bing-afinn-and-nrc-lexicons-with-the-tidytext-package-in-r/)
+
+
+
+<br>
+<br>
